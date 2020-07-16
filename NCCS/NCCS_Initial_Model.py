@@ -7,7 +7,6 @@ import pandas as pd
 import sys
 import os
 import scipy.io
-import pickle
 from collections import Counter
 # from imblearn.under_sampling import RandomUnderSampler
 
@@ -72,7 +71,7 @@ print("=== FINISHED Reading and Trimming Data. ===", end='\n\n')
 ###############################################################################
 
 
-### CONSTRUCT DATAFRAME #######################################################
+### CONSTRUCT DATAFRAME ######################################################
 print("=== Preparing Data... ===")
 data_dfs = []
 
