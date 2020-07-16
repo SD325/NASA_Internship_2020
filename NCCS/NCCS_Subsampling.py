@@ -59,20 +59,27 @@ def make_df(data, PD):
 
 
 def read_into_df(num_days_per_month=3):
-    df = pd.DataFrame()
+    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    df = pd.DataFrame(columns=col_names)
     os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
     months = os.listdir(os.getcwd())
+    months_dfs = []
     for month in months:
         os.chdir(month)
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
+        # print(month, ":", files)
+        # month_dfs = [df]
         for fl in files:
             data = read_trim(fl)
             PD = make_PDs(data)
             # construct DataFrame
             curr_df = make_df(data, PD)
-
+            # random subsample
+            curr_df = curr_df.sample(frac=0.1, random_state=42)
+            months_dfs.append(curr_df)
         os.chdir("..")
-
+    df = pd.concat(months_dfs, ignore_index=True)
     return df
 
 
+read_into_df()
