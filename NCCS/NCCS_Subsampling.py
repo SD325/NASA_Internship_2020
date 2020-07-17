@@ -58,6 +58,16 @@ def make_df(data, PD):
     return curr_df
 
 
+def subsample(df, balanced=True):
+    if balanced:
+        # balanced subsample
+        '''TODO: Change to balanced'''
+        return df.sample(frac=0.1, random_state=42)
+    else:
+        # random subsample
+        return df.sample(frac=0.1, random_state=42)
+
+
 def read_into_df(num_days_per_month=3):
     col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
     df = pd.DataFrame(columns=col_names)
@@ -67,19 +77,31 @@ def read_into_df(num_days_per_month=3):
     for month in months:
         os.chdir(month)
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
-        # print(month, ":", files)
-        # month_dfs = [df]
         for fl in files:
             data = read_trim(fl)
             PD = make_PDs(data)
             # construct DataFrame
             curr_df = make_df(data, PD)
-            # random subsample
-            curr_df = curr_df.sample(frac=0.1, random_state=42)
+            # subsample
+            curr_df = subsample(curr_df)
             months_dfs.append(curr_df)
+
         os.chdir("..")
     df = pd.concat(months_dfs, ignore_index=True)
     return df
 
 
-read_into_df()
+def train():
+    # construct dataframe
+    df = read_into_df()
+    print(df.head())
+
+    # prepare data
+
+    # train model
+
+    # evaluate model
+
+
+
+train()
