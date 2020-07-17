@@ -7,10 +7,13 @@ import pandas as pd
 import os
 import random
 import scipy.io
+import joblib
 from sklearn.utils import resample
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix
 
 
 def read_trim(filename):
@@ -114,7 +117,7 @@ def build_train_model(X, y, vb=False):
     max_depth = 15
     bootstrap = True
     criterion = 'entropy'
-    class_weight = 'balanced_subsample'
+    class_weight = 'balanced'
     random_state = 42
     n_job = -1
     verbose = 2 if vb else 0
@@ -125,6 +128,18 @@ def build_train_model(X, y, vb=False):
 
     rfc.fit(X, y)
     return rfc
+
+def evaluate(model, X, y):
+    y_pred = model.predict(X)
+    conf_mat = confusion_matrix(np.argmax(y, axis=1), np.argmax(y_pred, axis=1))
+    print(f'\n\n{conf_mat}\n\n')
+
+    print("Accuracy: ", np.trace(conf_mat) / float(np.sum(conf_mat)), end='\n\n')
+    # y_probs = model.predict_proba(X)
+    # y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
+    feat_importance_sorted = sorted(model.feature_importances_)
+    print(feat_importance_sorted)
+
 
 def train(verbose=False):
     # construct dataframe
@@ -148,7 +163,11 @@ def train(verbose=False):
     model = build_train_model(X_train, y_train, vb=verbose)
 
     # evaluate model
+    evaluate(model, X_test, y_test)
 
+    # save model
+    os.chdir("../../../../../../home/sdas11/")
+    joblib.dump(model, 'random_forest.model')
 
 
 train(verbose=True)
