@@ -8,6 +8,9 @@ import os
 import random
 import scipy.io
 from sklearn.utils import resample
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
 
 
 def read_trim(filename):
@@ -68,7 +71,7 @@ def subsample(df, balanced=True):
         return df.sample(frac=0.1, random_state=42)
 
 
-def read_into_df(num_days_per_month=3):
+def read_into_df(num_days_per_month=3, verbose=False):
     col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
     df = pd.DataFrame(columns=col_names)
     os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
@@ -79,6 +82,7 @@ def read_into_df(num_days_per_month=3):
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
         for fl in files:
             data = read_trim(fl)
+            if verbose: print(fl)
             PD = make_PDs(data)
             # construct DataFrame
             curr_df = make_df(data, PD)
@@ -91,17 +95,60 @@ def read_into_df(num_days_per_month=3):
     return df
 
 
-def train():
+def prep_data(df):
+    num_attribs =  ['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    cat_attribs = []
+
+
+    full_pipeline = ColumnTransformer([
+        ("num", StandardScaler(), num_attribs),
+        ("cat", OneHotEncoder(), cat_attribs),
+    ])
+
+    return full_pipeline.fit_transform(df)
+
+
+def build_train_model(X, y, vb=False):
+    # Random Forest Hyperparameters
+    n_estimators = 50
+    max_depth = 15
+    bootstrap = True
+    criterion = 'entropy'
+    class_weight = 'balanced_subsample'
+    random_state = 42
+    n_job = -1
+    verbose = 2 if vb else 0
+
+    rfc = RandomForestClassifier(n_estimators=n_estimators, bootstrap=bootstrap, criterion=criterion,
+                                 max_depth=max_depth, oob_score=False, verbose=verbose,
+                                 class_weight=class_weight, random_state=random_state, n_jobs=n_job)
+
+    rfc.fit(X, y)
+    return rfc
+
+def train(verbose=False):
     # construct dataframe
-    df = read_into_df()
-    print(df.head())
+    df = read_into_df(verbose=verbose)
+    if verbose: print(df.head())
+
+    X = df.drop(["pflag"], axis=1)
+    y = df[['pflag']]
 
     # prepare data
+    X_prep = prep_data(X)
+    y_prep = OneHotEncoder().fit_transform(y).toarray()
+    del X
+    del y
+    if verbose:
+        print(f"X: \n{X_prep.shape}")
+        print(f"y: \n{y_prep.shape}")
+    X_train, X_test, y_train, y_test = train_test_split(X_prep, y_prep, test_size=0.2, random_state=42)
 
     # train model
+    model = build_train_model(X_train, y_train, vb=verbose)
 
     # evaluate model
 
 
 
-train()
+train(verbose=True)
