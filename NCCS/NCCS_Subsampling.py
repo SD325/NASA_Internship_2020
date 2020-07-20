@@ -6,14 +6,18 @@ import numpy as np
 import pandas as pd
 import os
 import random
+from math import inf
 import scipy.io
 import joblib
+from collections import Counter
+from statistics import median, mean
+
 from sklearn.utils import resample
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_auc_score
 
 
 def read_trim(filename):
@@ -64,11 +68,38 @@ def make_df(data, PD):
     return curr_df
 
 
-def subsample(df, balanced=True):
+def subsample(df, balanced=True, verbose=False):
+    # print('\t', Counter(df['pflag']))
     if balanced:
         # balanced subsample
-        '''TODO: Change to balanced'''
-        return df.sample(frac=0.1, random_state=42)
+        dfs = []
+        min_len, max_len = inf, -inf
+        lens = []
+        for i in range(11):
+            dfs.append(df[df['pflag'] == i])
+            this_len = len(dfs[i].index)
+            lens.append(this_len)
+            min_len = min(min_len, this_len)
+            max_len = max(max_len, this_len)
+
+        del df
+        replace_len = median(lens)
+        new_dfs = []
+        # print(replace_len)
+        for i, dfs_i in enumerate(dfs):
+            if lens[i] <= replace_len:
+                new_dfs.append(dfs_i)
+                continue
+            # print("before:", dfs_i.shape)
+            new_dfs.append(dfs_i.sample(n=replace_len, random_state=42).copy())
+            # print("after:", dfs_i.shape)
+        del dfs
+        df_new = pd.concat(new_dfs)
+        del new_dfs
+        # print('\t', Counter(df_new['pflag']))
+        # random shuffle
+        return df_new.sample(frac=1, random_state=42)
+
     else:
         # random subsample
         return df.sample(frac=0.1, random_state=42)
@@ -135,10 +166,10 @@ def evaluate(model, X, y):
     print(f'\n\n{conf_mat}\n\n')
 
     print("Accuracy: ", np.trace(conf_mat) / float(np.sum(conf_mat)), end='\n\n')
-    # y_probs = model.predict_proba(X)
-    # y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
-    feat_importance_sorted = sorted(model.feature_importances_)
-    print(feat_importance_sorted)
+    y_probs = model.predict_proba(X)
+    y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
+    auc_roc = roc_auc_score(y, y_pred_probs)
+    print("AUC ROC:", auc_roc)
 
 
 def train(verbose=False):
@@ -158,6 +189,7 @@ def train(verbose=False):
         print(f"X: \n{X_prep.shape}")
         print(f"y: \n{y_prep.shape}")
     X_train, X_test, y_train, y_test = train_test_split(X_prep, y_prep, test_size=0.2, random_state=42)
+    print(Counter(np.argmax(y_prep, axis=1)))
 
     # train model
     model = build_train_model(X_train, y_train, vb=verbose)
