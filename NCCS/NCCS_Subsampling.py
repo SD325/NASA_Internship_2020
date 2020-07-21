@@ -64,7 +64,7 @@ def make_df(data, PD):
 
     # drop unwanted instances
     curr_df = curr_df[(~np.isnan(curr_df['pflag'])) & (curr_df['ts'] != -99.0) & (~np.isnan(curr_df['twv']))]
-
+    curr_df['pflag'] = curr_df['pflag'].clip(upper=4)
     return curr_df
 
 
@@ -75,7 +75,7 @@ def subsample(df, balanced=True, verbose=False):
         dfs = []
         min_len, max_len = inf, -inf
         lens = []
-        for i in range(11):
+        for i in range(5):
             dfs.append(df[df['pflag'] == i])
             this_len = len(dfs[i].index)
             lens.append(this_len)
@@ -83,7 +83,7 @@ def subsample(df, balanced=True, verbose=False):
             max_len = max(max_len, this_len)
 
         del df
-        replace_len = median(lens)
+        replace_len = sorted(lens)[1]
         new_dfs = []
         # print(replace_len)
         for i, dfs_i in enumerate(dfs):
@@ -114,6 +114,9 @@ def read_into_df(num_days_per_month=3, verbose=False):
     for month in months:
         os.chdir(month)
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
+        # "THE FORBIDDEN FILE" ;)
+        while 'colloc_Precipflag_DPR_GMI_20170928.sav' in files:
+            files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
         for fl in files:
             data = read_trim(fl)
             if verbose: print(fl)
@@ -144,7 +147,7 @@ def prep_data(df):
 
 def build_train_model(X, y, vb=False):
     # Random Forest Hyperparameters
-    n_estimators = 50
+    n_estimators = 150
     max_depth = 15
     bootstrap = True
     criterion = 'entropy'
