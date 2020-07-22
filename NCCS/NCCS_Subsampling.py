@@ -18,6 +18,8 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.naive_bayes import GaussianNB
+from xgboost import XGBClassifier
 
 
 def read_trim(filename):
@@ -115,8 +117,9 @@ def read_into_df(num_days_per_month=3, verbose=False):
         os.chdir(month)
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
         # "THE FORBIDDEN FILE" ;)
-        while 'colloc_Precipflag_DPR_GMI_20170928.sav' in files:
-            files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
+        if month == '09':
+            while 'colloc_Precipflag_DPR_GMI_20170928.sav' in files:
+                files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
         for fl in files:
             data = read_trim(fl)
             if verbose: print(fl)
@@ -145,13 +148,13 @@ def prep_data(df):
     return full_pipeline.fit_transform(df)
 
 
-def build_train_model(X, y, vb=False):
+def random_forest(X, y, vb=False):
     # Random Forest Hyperparameters
-    n_estimators = 150
+    n_estimators = 500
     max_depth = 15
     bootstrap = True
     criterion = 'entropy'
-    class_weight = 'balanced'
+    class_weight = 'balanced_subsample'
     random_state = 42
     n_job = -1
     verbose = 2 if vb else 0
@@ -163,10 +166,32 @@ def build_train_model(X, y, vb=False):
     rfc.fit(X, y)
     return rfc
 
+
+def naive_bayes(X, y, vb=False):
+    gnb = GaussianNB()
+    gnb.fit(X, np.argmax(y, axis=1))
+    return gnb
+
+
+def xgboost_clf(X, y, vb=False):
+    xgb = XGBClassifier()
+    xgb.fit(X, np.argmax(y, axis=1))
+    return xgb
+
+
+def build_train_model(model_name, X, y, vb=False):
+    f_name = {'random_forest': random_forest,
+              'naive_bayes': naive_bayes,
+              'xgboost_clf': xgboost_clf}
+
+    return f_name[model_name](X, y, vb=vb)
+
+
 def evaluate(model, X, y):
     y_pred = model.predict(X)
-    conf_mat = confusion_matrix(np.argmax(y, axis=1), np.argmax(y_pred, axis=1))
-    print(f'\n\n{conf_mat}\n\n')
+    # y_pred = np.argmax(y_pred, axis=1)
+    conf_mat = confusion_matrix(np.argmax(y, axis=1), y_pred)
+    pprint(f'\n\n{conf_mat}\n\n')
 
     print("Accuracy: ", np.trace(conf_mat) / float(np.sum(conf_mat)), end='\n\n')
     y_probs = model.predict_proba(X)
@@ -175,7 +200,7 @@ def evaluate(model, X, y):
     print("AUC ROC:", auc_roc)
 
 
-def train(verbose=False):
+def train(model_name='random_forest', verbose=False):
     # construct dataframe
     df = read_into_df(verbose=verbose)
     if verbose: print(df.head())
@@ -195,14 +220,14 @@ def train(verbose=False):
     print(Counter(np.argmax(y_prep, axis=1)))
 
     # train model
-    model = build_train_model(X_train, y_train, vb=verbose)
+    model = build_train_model(model_name, X_train, y_train, vb=verbose)
 
     # evaluate model
     evaluate(model, X_test, y_test)
 
     # save model
     os.chdir("../../../../../../home/sdas11/")
-    joblib.dump(model, 'random_forest.model')
+    joblib.dump(model, f'{model_name}.model')
 
 
-train(verbose=True)
+train(model_name='xgboost_clf', verbose=True)
