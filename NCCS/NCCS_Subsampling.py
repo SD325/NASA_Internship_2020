@@ -195,8 +195,9 @@ def evaluate(model, X, y):
 
     print("Accuracy: ", np.trace(conf_mat) / float(np.sum(conf_mat)), end='\n\n')
     y_probs = model.predict_proba(X)
-    y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
-    auc_roc = roc_auc_score(y, y_pred_probs)
+    print(y_probs.shape, '\n', y_probs)
+    # y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
+    auc_roc = roc_auc_score(y, y_probs)
     print("AUC ROC:", auc_roc)
 
 
