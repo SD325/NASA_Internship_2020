@@ -11,6 +11,8 @@ GPM Core Observatory       |  Scan Details
 :-------------------------:|:-------------------------:
 ![](pictures/GPM_GMI_DPR_data_collection.png)  |  ![](pictures/Satellite%20Data%20Visualization.png)
 
+![](pictures/GMI_Characteristics.png)
+
 
 ## Sources 
 * G. Skofronick Jackson, 2nd NOAA User Workshop on the GPM Mission, Nov 29, 2011, College Park, MD (https://www.star.nesdis.noaa.gov/star/documents/meetings/GPM2011/dayOne/Skofronick-JacksonG.pdf)
