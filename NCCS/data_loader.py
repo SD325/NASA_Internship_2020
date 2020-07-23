@@ -143,9 +143,9 @@ def prep_data(df):
     return full_pipeline.fit_transform(df)
 
 
-def get_data(verbose=False):
+def get_data(num_days_per_month=3, verbose=False):
     # construct dataframe
-    df = read_into_df(verbose=verbose)
+    df = read_into_df(num_days_per_month=num_days_per_month, verbose=verbose)
     if verbose: print(df.head())
 
     X = df.drop(["pflag"], axis=1)
