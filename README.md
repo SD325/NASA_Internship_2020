@@ -16,4 +16,5 @@ GPM Core Observatory       |  Scan Details
 
 ## Sources 
 * G. Skofronick Jackson, 2nd NOAA User Workshop on the GPM Mission, Nov 29, 2011, College Park, MD (https://www.star.nesdis.noaa.gov/star/documents/meetings/GPM2011/dayOne/Skofronick-JacksonG.pdf)
-* https://www.star.nesdis.noaa.gov/mirs/gpmgmi.php
+* MiRS Sensors GPM GMI Overview (https://www.star.nesdis.noaa.gov/mirs/gpmgmi.php)
+* NOAA GPM Users Workshop, April 2-3, 2013 (https://www.star.nesdis.noaa.gov/star/documents/meetings/GPM2013/dayOne/Skofronick-Jackson.pdf)
