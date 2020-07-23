@@ -13,6 +13,7 @@ from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 
 from data_loader import get_data
@@ -63,12 +64,19 @@ def logistic_regression(X, y, vb=False):
     return lr
 
 
+def NN(X, y, vb=False):
+    mlp = MLPClassifier()
+    mlp.fit(X, np.argmax(y, axis=1))
+    return mlp
+
+
 def build_train_model(model_name, X, y, vb=False):
     f_name = {'random_forest': random_forest,
               'naive_bayes': naive_bayes,
               'xgboost_clf': xgboost_clf,
               'svm': svm,
-              'logistic_regression': logistic_regression}
+              'logistic_regression': logistic_regression,
+              'NN': NN}
 
     return f_name[model_name](X, y, vb=vb)
 
@@ -108,4 +116,4 @@ def train_model(model_name='random_forest', verbose=False):
     joblib.dump(model, f'{model_name}.model')
 
 
-train_model(model_name='logistic_regression', verbose=True)
+train_model(model_name='NN', verbose=True)
