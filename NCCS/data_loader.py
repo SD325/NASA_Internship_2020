@@ -23,8 +23,10 @@ def read_trim(filename):
     for var, arr in data.items():
         if arr.ndim == 1:
             data_trimmed[var] = arr[1:]
+        elif arr.ndim == 2:
+            data_trimmed[var] = arr[1:, 25:196]
         else:
-            data_trimmed[var] = arr[1:, 25:196] if arr.ndim == 2 else arr[1:, 25:196, :]
+            data_trimmed[var] = arr[1:, 25:196, :]
     del data
     return data_trimmed
 
@@ -46,18 +48,19 @@ def make_df(data, PD):
                'lonc': 'lon',
                'ts': 'ts',
                'clwp': 'clwp',
-               'twv': 'twv'}
+               'twv': 'twv',
+               'tysfc': 'tysfc'}
     # 2d data
     for data_name, df_name in data_2d.items():
-        curr_df[df_name] = np.ravel(data[data_name])
+        curr_df[df_name] = np.ravel(data[data_name]).byteswap().newbyteorder()
 
     # PDs
     for freq in PD_append:
-        curr_df[f'PD_{freq}'] = np.ravel(PD[freq])
+        curr_df[f'PD_{freq}'] = np.ravel(PD[freq]).byteswap().newbyteorder()
 
     # 3d data
     for idx in range(data['tc'].shape[2]):
-        curr_df[f'tc_{idx}'] = np.ravel(data['tc'][:, :, idx])
+        curr_df[f'tc_{idx}'] = np.ravel(data['tc'][:, :, idx]).byteswap().newbyteorder()
 
     # drop unwanted instances
     curr_df = curr_df[(~np.isnan(curr_df['pflag'])) & (curr_df['ts'] != -99.0) & (~np.isnan(curr_df['twv']))]
@@ -102,37 +105,40 @@ def subsample(df, balanced=True, verbose=False):
         return df.sample(frac=0.1, random_state=42)
 
 
-def read_into_df(num_days_per_month=3, verbose=False):
-    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+def read_into_df(num_days_per_month=3, verbose=False, exclude={'colloc_Precipflag_DPR_GMI_20170928.sav'}, testing=False):
+    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'tysfc', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    # col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
     df = pd.DataFrame(columns=col_names)
-    os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
+    if not testing: os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
     months = os.listdir(os.getcwd())
     months_dfs = []
+    used = {'colloc_Precipflag_DPR_GMI_20170928.sav'}
     for month in months:
         os.chdir(month)
         files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
         # "THE FORBIDDEN FILE" ;)
-        if month == '09':
-            while 'colloc_Precipflag_DPR_GMI_20170928.sav' in files:
-                files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
+        while any(item in exclude for item in files):
+            files = random.sample(os.listdir(os.getcwd()), num_days_per_month)
+
         for fl in files:
+            used.add(fl)
             data = read_trim(fl)
             if verbose: print(fl)
             PD = make_PDs(data)
             # construct DataFrame
             curr_df = make_df(data, PD)
             # subsample
-            curr_df = subsample(curr_df)
+            if not testing: curr_df = subsample(curr_df)
             months_dfs.append(curr_df)
 
         os.chdir("..")
     df = pd.concat(months_dfs, ignore_index=True)
-    return df
+    return df, used
 
 
 def prep_data(df):
     num_attribs =  ['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
-    cat_attribs = []
+    cat_attribs = ['tysfc']
 
 
     full_pipeline = ColumnTransformer([
@@ -140,26 +146,49 @@ def prep_data(df):
         ("cat", OneHotEncoder(), cat_attribs),
     ])
 
-    return full_pipeline.fit_transform(df)
+    return full_pipeline.fit_transform(df), full_pipeline
 
 
 def get_data(num_days_per_month=3, verbose=False):
+    ### TRAIN
     # construct dataframe
-    df = read_into_df(num_days_per_month=num_days_per_month, verbose=verbose)
+    df, used = read_into_df(num_days_per_month=num_days_per_month, verbose=verbose)
     if verbose: print(df.head())
 
     X = df.drop(["pflag"], axis=1)
     y = df[['pflag']]
+    del df
 
     # prepare data
-    X_prep = prep_data(X)
-    y_prep = OneHotEncoder().fit_transform(y).toarray()
+    X_train, pipeline = prep_data(X)
+    y_train = OneHotEncoder().fit_transform(y).toarray()
     del X
     del y
     if verbose:
-        print(f"X: \n{X_prep.shape}")
-        print(f"y: \n{y_prep.shape}")
-    X_train, X_test, y_train, y_test = train_test_split(X_prep, y_prep, test_size=0.2, random_state=42)
-    print(Counter(np.argmax(y_prep, axis=1)))
+        print(f"X: \n{X_train.shape}")
+        print(f"y: \n{y_train.shape}")
+    # X_train, X_test, y_train, y_test = train_test_split(X_prep, y_prep, test_size=0.2, random_state=42)
+    print('train: ', Counter(np.argmax(y_train, axis=1)))
 
+    ### TEST
+    # construct dataframe
+    df, _ = read_into_df(num_days_per_month=1, verbose=verbose, exclude=used, testing=True)
+    if verbose: print(df.head())
+
+    X = df.drop(["pflag"], axis=1)
+    y = df[['pflag']]
+    del df
+
+    # prepare data
+    X_test = pipeline.transform(X)  # use train statistics
+    y_test = OneHotEncoder().fit_transform(y).toarray()
+    del X
+    del y
+    if verbose:
+        print(f"X: \n{X_test.shape}")
+        print(f"y: \n{y_test.shape}")
+
+    print('test: ', Counter(np.argmax(y_test, axis=1)))
+
+    # X_train, X_test, y_train, y_test
     return X_train, X_test, y_train, y_test
