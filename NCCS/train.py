@@ -2,6 +2,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+import sys
 import numpy as np
 import pandas as pd
 import os
@@ -65,7 +66,8 @@ def logistic_regression(X, y, vb=False):
 
 
 def NN(X, y, vb=False):
-    mlp = MLPClassifier()
+    hidden_layer_sizes = (100,)
+    mlp = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes)
     mlp.fit(X, np.argmax(y, axis=1))
     return mlp
 
@@ -93,12 +95,12 @@ def evaluate(model, X, y, model_name='random_forest'):
         return
 
     y_probs = model.predict_proba(X)
-    if model_name == 'random_forest':
-        y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
-        auc_roc = roc_auc_score(y, y_pred_probs)
-    else:
-        auc_roc = roc_auc_score(y, y_probs)
-        print(y_probs.shape, '\n', y_probs)
+    # if model_name == 'random_forest':
+    #     y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
+    #     auc_roc = roc_auc_score(y, y_pred_probs)
+    # else:
+    auc_roc = roc_auc_score(y, y_probs)
+    print(y_probs.shape, '\n', y_probs)
     print("AUC ROC:", auc_roc)
 
 
@@ -116,4 +118,5 @@ def train_model(model_name='random_forest', verbose=False):
     joblib.dump(model, f'{model_name}.model')
 
 
-train_model(model_name='NN', verbose=True)
+name = sys.argv[1]
+train_model(model_name=name, verbose=True)
