@@ -36,6 +36,7 @@ def random_forest(X, y, vb=False):
                                  class_weight=class_weight, random_state=random_state, n_jobs=n_job)
 
     rfc.fit(X, np.argmax(y, axis=1))
+    rfc.verbose = False
     return rfc
 
 
@@ -100,7 +101,7 @@ def evaluate(model, X, y, model_name='random_forest'):
     #     auc_roc = roc_auc_score(y, y_pred_probs)
     # else:
     auc_roc = roc_auc_score(y, y_probs)
-    print(y_probs.shape, '\n', y_probs)
+    # print(y_probs.shape, '\n', y_probs)
     print("AUC ROC:", auc_roc)
 
 
