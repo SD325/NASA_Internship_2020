@@ -104,22 +104,23 @@ def evaluate(model, X, y, model_name='random_forest'):
     print("AUC ROC: ", auc_roc, end='\n\n')
 
 
-def feat_imp(model, model_name='random_forest'):
+def feat_imp(model, model_name='random_forest', show_plot=True):
     # Feature Importances
     if hasattr(model, "feature_importances_"):
         feature_names = np.array(['lat', 'lon', 'ts', 'clwp', 'twv'] + [f'tysfc_{i}' for i in range(13)] + ['PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)])
         fi = model.feature_importances_
         importance_sorted_idx = np.argsort(fi)
         print(feature_names[importance_sorted_idx])
-        indices = np.array(range(0, len(fi))) + 0.5
-        fig, (ax1) = plt.subplots(1, 1, figsize=(12, 8))
-        ax1.barh(indices, fi[importance_sorted_idx], height=0.7)
-        ax1.set_yticklabels(feature_names[importance_sorted_idx])
-        ax1.set_yticks(indices)
-        ax1.set_ylim((0, len(fi)))
-        plt.title(f'{model_name.upper()} Feature Importances')
-        fig.tight_layout()
-        plt.show()
+        if show_plot:
+            indices = np.array(range(0, len(fi))) + 0.5
+            fig, (ax1) = plt.subplots(1, 1, figsize=(12, 8))
+            ax1.barh(indices, fi[importance_sorted_idx], height=0.7)
+            ax1.set_yticklabels(feature_names[importance_sorted_idx])
+            ax1.set_yticks(indices)
+            ax1.set_ylim((0, len(fi)))
+            plt.title(f'{model_name.upper()} Feature Importances')
+            fig.tight_layout()
+            plt.show()
 
 
 
@@ -154,8 +155,8 @@ def train_all(verbose=False):
         os.chdir("../../../../../../home/sdas11/")
         joblib.dump(model, f'{model_name}.model')
         print('\n')
-
+        feat_imp(model, model_name=model_name, show_plot=False)
+        print('\n')
 
 name = sys.argv[1]
 train_all() if name == 'all' else train_model(model_name=name, verbose=True)
-# feat_imp(joblib.load('xgboost_clf.model'))
