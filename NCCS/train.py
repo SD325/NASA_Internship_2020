@@ -8,9 +8,10 @@ import pandas as pd
 import os
 import joblib
 from collections import Counter
+import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.metrics import confusion_matrix, roc_auc_score, classification_report
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
@@ -22,14 +23,14 @@ from data_loader import get_data
 
 def random_forest(X, y, vb=False):
     # Random Forest Hyperparameters
-    n_estimators = 500
+    n_estimators = 50
     max_depth = 20
     bootstrap = True
     criterion = 'entropy'
     class_weight = 'balanced_subsample'
     random_state = 42
     n_job = -1
-    verbose = 2 if vb else 0
+    verbose = 0
 
     rfc = RandomForestClassifier(n_estimators=n_estimators, bootstrap=bootstrap, criterion=criterion,
                                  max_depth=max_depth, oob_score=False, verbose=verbose,
@@ -85,24 +86,41 @@ def build_train_model(model_name, X, y, vb=False):
 
 
 def evaluate(model, X, y, model_name='random_forest'):
+    y_argmax = np.argmax(y, axis=1)
     y_pred = model.predict(X)
-    # if isEnsemble: y_pred = np.argmax(y_pred, axis=1)
-    conf_mat = confusion_matrix(np.argmax(y, axis=1), y_pred)
-    print(f'\n\n{conf_mat}\n\n')
+
+    conf_mat = confusion_matrix(y_argmax, y_pred)
+    print(f'Confusion Matrix: \n\n{conf_mat}\n\n')
 
     print("Accuracy: ", np.trace(conf_mat) / float(np.sum(conf_mat)), end='\n\n')
+
+    print(f'Classification Report: \n{classification_report(y_argmax, y_pred)}', end='\n\n')
 
     if model_name in {'svm'}:
         return
 
     y_probs = model.predict_proba(X)
-    # if model_name == 'random_forest':
-    #     y_pred_probs = np.column_stack(tuple(y_probs[i][:, 1] for i in range(y.shape[1])))
-    #     auc_roc = roc_auc_score(y, y_pred_probs)
-    # else:
     auc_roc = roc_auc_score(y, y_probs)
-    # print(y_probs.shape, '\n', y_probs)
-    print("AUC ROC:", auc_roc)
+    print("AUC ROC: ", auc_roc, end='\n\n')
+
+
+def feat_imp(model, model_name='random_forest'):
+    # Feature Importances
+    if hasattr(model, "feature_importances_"):
+        feature_names = np.array(['lat', 'lon', 'ts', 'clwp', 'twv'] + [f'tysfc_{i}' for i in range(13)] + ['PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)])
+        fi = model.feature_importances_
+        importance_sorted_idx = np.argsort(fi)
+        print(feature_names[importance_sorted_idx])
+        indices = np.array(range(0, len(fi))) + 0.5
+        fig, (ax1) = plt.subplots(1, 1, figsize=(12, 8))
+        ax1.barh(indices, fi[importance_sorted_idx], height=0.7)
+        ax1.set_yticklabels(feature_names[importance_sorted_idx])
+        ax1.set_yticks(indices)
+        ax1.set_ylim((0, len(fi)))
+        plt.title(f'{model_name.upper()} Feature Importances')
+        fig.tight_layout()
+        plt.show()
+
 
 
 def train_model(model_name='random_forest', verbose=False):
@@ -118,6 +136,26 @@ def train_model(model_name='random_forest', verbose=False):
     os.chdir("../../../../../../home/sdas11/")
     joblib.dump(model, f'{model_name}.model')
 
+    feat_imp(model, model_name=model_name)
+
+
+def train_all(verbose=False):
+    X_train, X_test, y_train, y_test = get_data(num_days_per_month=7)
+
+    for model_name in  ['NN', 'random_forest', 'xgboost_clf', 'logistic_regression', 'svm', 'naive_bayes']:
+        print(model_name.upper(), ':')
+        # train model
+        model = build_train_model(model_name, X_train, y_train, vb=verbose)
+
+        # evaluate model
+        evaluate(model, X_test, y_test, model_name=model_name)
+
+        # save model
+        os.chdir("../../../../../../home/sdas11/")
+        joblib.dump(model, f'{model_name}.model')
+        print('\n')
+
 
 name = sys.argv[1]
-train_model(model_name=name, verbose=True)
+train_all() if name == 'all' else train_model(model_name=name, verbose=True)
+# feat_imp(joblib.load('xgboost_clf.model'))
