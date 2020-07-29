@@ -14,7 +14,7 @@ from statistics import median, mean
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
-
+from joblib import dump, load
 
 
 def read_trim(filename):
@@ -61,6 +61,8 @@ def make_df(data, PD):
     # 3d data
     for idx in range(data['tc'].shape[2]):
         curr_df[f'tc_{idx}'] = np.ravel(data['tc'][:, :, idx]).byteswap().newbyteorder()
+        curr_df[f'emis_{idx}'] = np.ravel(data['emis'][:, :, idx]).byteswap().newbyteorder()
+
 
     # drop unwanted instances
     curr_df = curr_df[(~np.isnan(curr_df['pflag'])) & (curr_df['ts'] != -99.0) & (~np.isnan(curr_df['twv']))]
@@ -106,7 +108,7 @@ def subsample(df, balanced=True, verbose=False):
 
 
 def read_into_df(num_days_per_month=3, verbose=False, exclude={'colloc_Precipflag_DPR_GMI_20170928.sav'}, testing=False):
-    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'tysfc', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'tysfc', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
     # col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
     df = pd.DataFrame(columns=col_names)
     if not testing: os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
@@ -137,7 +139,7 @@ def read_into_df(num_days_per_month=3, verbose=False, exclude={'colloc_Precipfla
 
 
 def prep_data(df):
-    num_attribs =  ['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    num_attribs =  ['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
     cat_attribs = ['tysfc']
 
 
@@ -146,7 +148,14 @@ def prep_data(df):
         ("cat", OneHotEncoder(), cat_attribs),
     ])
 
-    return full_pipeline.fit_transform(df), full_pipeline
+    df = full_pipeline.fit_transform(df)
+
+    # save pipeline
+    os.chdir("../../../../../../home/sdas11/")
+    dump(full_pipeline, 'full_pipeline.bin', compress=True)
+    os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
+
+    return df, full_pipeline
 
 
 def get_data(num_days_per_month=3, verbose=False):
@@ -192,3 +201,4 @@ def get_data(num_days_per_month=3, verbose=False):
 
     # X_train, X_test, y_train, y_test
     return X_train, X_test, y_train, y_test
+
