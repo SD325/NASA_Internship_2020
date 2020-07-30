@@ -48,8 +48,8 @@ def make_df(data, PD):
                'lonc': 'lon',
                'ts': 'ts',
                'clwp': 'clwp',
-               'twv': 'twv',
-               'tysfc': 'tysfc'}
+               'twv': 'twv'}# ,
+               # 'tysfc': 'tysfc'}
     # 2d data
     for data_name, df_name in data_2d.items():
         curr_df[df_name] = np.ravel(data[data_name]).byteswap().newbyteorder()
@@ -108,8 +108,9 @@ def subsample(df, balanced=True, verbose=False):
 
 
 def read_into_df(num_days_per_month=3, verbose=False, exclude={'colloc_Precipflag_DPR_GMI_20170928.sav'}, testing=False):
-    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'tysfc', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
-    # col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)]
+    col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
+    #  col_names = ['pflag', 'lat', 'lon', 'ts', 'clwp', 'twv', 'tysfc', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
+
     df = pd.DataFrame(columns=col_names)
     if not testing: os.chdir("../../../discover/nobackup/jgong/ForSpandan/2017/")
     months = os.listdir(os.getcwd())
@@ -140,7 +141,7 @@ def read_into_df(num_days_per_month=3, verbose=False, exclude={'colloc_Precipfla
 
 def prep_data(df):
     num_attribs =  ['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)]
-    cat_attribs = ['tysfc']
+    cat_attribs = [] # ['tysfc']
 
 
     full_pipeline = ColumnTransformer([
@@ -198,7 +199,7 @@ def get_data(num_days_per_month=3, verbose=False):
         print(f"y: \n{y_test.shape}")
 
     print('test: ', Counter(np.argmax(y_test, axis=1)))
-
+    print('\n\n')
     # X_train, X_test, y_train, y_test
     return X_train, X_test, y_train, y_test
 
