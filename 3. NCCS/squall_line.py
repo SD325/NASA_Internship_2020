@@ -51,8 +51,8 @@ def make_df(data, PD):
                'lonc': 'lon',
                'ts': 'ts',
                'clwp': 'clwp',
-               'twv': 'twv',
-               'tysfc': 'tysfc'}
+               'twv': 'twv'} # ,
+               # 'tysfc': 'tysfc'}
     # 2d data
     for data_name, df_name in data_2d.items():
         curr_df[df_name] = np.ravel(data[data_name]).byteswap().newbyteorder()
@@ -64,6 +64,7 @@ def make_df(data, PD):
     # 3d data
     for idx in range(data['tc'].shape[2]):
         curr_df[f'tc_{idx}'] = np.ravel(data['tc'][:, :, idx]).byteswap().newbyteorder()
+        curr_df[f'emis_{idx}'] = np.ravel(data['emis'][:, :, idx]).byteswap().newbyteorder()
 
     # drop unwanted instances
     curr_df = curr_df[(curr_df['ts'] != -99.0) & (~np.isnan(curr_df['twv']))]
@@ -121,7 +122,7 @@ def get_data(verbose=False):
     return X, X_sq, y_sq
 
 
-def get_counts(model_name='random_forest'):
+def get_counts(model_name='random_forest', threshold=0.8, use_thld=False):
     X_df, X_sq, y_sq = get_data()
     lat_unf, lon_unf, counts_unf = [], [], []
     lat, lon, counts = [], [], []
@@ -131,9 +132,8 @@ def get_counts(model_name='random_forest'):
     # y_pred = np.argmax(model.predict(X_sq), axis=1)
     y_pred = model.predict(X_sq)
     # print(X_df.iloc[10, 0])
-    # y_probs = model.predict_proba(X_scaled)
-    # y_pred_probs = np.transpose(np.array([y_probs[0][:, 1], y_probs[1][:, 1], y_probs[2][:, 1], y_probs[3][:, 1]]))
-    # y_pred_probs = np.max(y_pred_probs, axis=1)
+    y_probs = model.predict_proba(X_sq)
+    y_pred_probs = np.max(y_probs, axis=1)
 
     row_set = set()
     for r, _ in np.ndindex(X_sq.shape):
@@ -144,6 +144,8 @@ def get_counts(model_name='random_forest'):
             lat_unf.append(X_df.iloc[r, 0])
             lon_unf.append(X_df.iloc[r, 1])
             counts_unf.append(y_sq.iloc[r, 0])
+        if use_thld and y_pred_probs[r] < threshold:
+            continue
         lat.append(X_df.iloc[r, 0])
         lon.append(X_df.iloc[r, 1])
         counts.append(y_pred[r].astype(float))
