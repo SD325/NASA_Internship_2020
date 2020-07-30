@@ -9,6 +9,7 @@ import os
 import joblib
 from collections import Counter
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, roc_auc_score, classification_report
@@ -85,7 +86,26 @@ def build_train_model(model_name, X, y, vb=False):
     return f_name[model_name](X, y, vb=vb)
 
 
-def evaluate(model, X, y, model_name='random_forest'):
+def pred_prob_hist(y, y_pred, y_probs, model_name='random_forest', hist=False):
+    # Correct ONLY
+    sns.distplot(y_probs[:, 0][(y==0) & (y_pred==0)], hist=hist, label='no precipitation')
+    sns.distplot(y_probs[:, 1][(y==1) & (y_pred==1)], hist=hist, label='stratiform')
+    sns.distplot(y_probs[:, 2][(y==2) & (y_pred==2)], hist=hist, label='convective')
+    sns.distplot(y_probs[:, 3][(y==3) & (y_pred==3)], hist=hist, label='other')
+    sns.distplot(y_probs[:, 4][(y==4) & (y_pred==4)], hist=hist, label='mixed').set_title('Correct Probabilities')
+    plt.show()
+
+    # Incorrect ONLY
+    sns.distplot(y_probs[:, 0][(y==0) & (y_pred!=0)], hist=hist, label='no precipitation')
+    sns.distplot(y_probs[:, 1][(y==1) & (y_pred!=1)], hist=hist, label='stratiform')
+    sns.distplot(y_probs[:, 2][(y==2) & (y_pred!=2)], hist=hist, label='convective')
+    sns.distplot(y_probs[:, 3][(y==3) & (y_pred!=3)], hist=hist, label='other')
+    sns.distplot(y_probs[:, 4][(y==4) & (y_pred!=4)], hist=hist, label='mixed').set_title('Incorrect Probabilities')
+    plt.show()
+
+
+
+def evaluate(model, X, y, model_name='random_forest', plot_probs=False):
     y_argmax = np.argmax(y, axis=1)
     y_pred = model.predict(X)
 
@@ -103,11 +123,16 @@ def evaluate(model, X, y, model_name='random_forest'):
     auc_roc = roc_auc_score(y, y_probs)
     print("AUC ROC: ", auc_roc, end='\n\n')
 
+    if plot_probs:
+        pred_prob_hist(y_argmax, y_pred, y_probs, model_name=model_name, hist=False)
+
 
 def feat_imp(model, model_name='random_forest', show_plot=True):
     # Feature Importances
     if hasattr(model, "feature_importances_"):
-        feature_names = np.array(['lat', 'lon', 'ts', 'clwp', 'twv'] + [f'tysfc_{i}' for i in range(13)] + ['PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)])
+        feature_names = np.array(['lat', 'lon', 'ts', 'clwp', 'twv', 'PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)])
+        # feature_names = np.array(['lat', 'lon', 'ts', 'clwp', 'twv'] + [f'tysfc_{i}' for i in range(13)] + ['PD_10.65', 'PD_89.00', 'PD_166.0'] + [f'tc_{i}' for i in range(13)] + [f'emis_{i}' for i in range(13)])
+
         fi = model.feature_importances_
         importance_sorted_idx = np.argsort(fi)
         print(feature_names[importance_sorted_idx])
@@ -123,7 +148,6 @@ def feat_imp(model, model_name='random_forest', show_plot=True):
             plt.show()
 
 
-
 def train_model(model_name='random_forest', verbose=False):
     X_train, X_test, y_train, y_test = get_data(num_days_per_month=7)
 
@@ -131,7 +155,7 @@ def train_model(model_name='random_forest', verbose=False):
     model = build_train_model(model_name, X_train, y_train, vb=verbose)
 
     # evaluate model
-    evaluate(model, X_test, y_test, model_name=model_name)
+    evaluate(model, X_test, y_test, model_name=model_name, plot_probs=True)
 
     # save model
     os.chdir("../../../../../../home/sdas11/")
@@ -149,7 +173,7 @@ def train_all(verbose=False):
         model = build_train_model(model_name, X_train, y_train, vb=verbose)
 
         # evaluate model
-        evaluate(model, X_test, y_test, model_name=model_name)
+        evaluate(model, X_test, y_test, model_name=model_name, plot_probs=False)
 
         # save model
         os.chdir("../../../../../../home/sdas11/")
@@ -160,3 +184,4 @@ def train_all(verbose=False):
 
 name = sys.argv[1]
 train_all() if name == 'all' else train_model(model_name=name, verbose=True)
+
