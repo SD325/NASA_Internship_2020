@@ -15,6 +15,8 @@ GPM Core Observatory       |  Scan Details
 
 ![](pictures/GMI_Characteristics.png)
 
+## Presentation at American Geophysical Union Fall Meeting 2020
+[Poster] (agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=05-CC-B0-2F-B8-AE-91-F0-BC-BF-9A-EB-92-9E-BB-FE)
 
 ## Sources 
 * G. Skofronick Jackson, 2nd NOAA User Workshop on the GPM Mission, Nov 29, 2011, College Park, MD (https://www.star.nesdis.noaa.gov/star/documents/meetings/GPM2011/dayOne/Skofronick-JacksonG.pdf)
