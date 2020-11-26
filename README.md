@@ -19,6 +19,8 @@ GPM Core Observatory       |  Scan Details
 ![](pictures/agu_fall_meeting_abstract_website.JPG)
 
 [View Digital Poster](https://agu2020fallmeeting-agu.ipostersessions.com/default.aspx?s=05-CC-B0-2F-B8-AE-91-F0-BC-BF-9A-EB-92-9E-BB-FE)
+
+[doi.org/10.1002/essoar.10504985.1](https://doi.org/10.1002/essoar.10504985.1)
 ![](pictures/agu_poster_screenshot.PNG)
 
 ## Sources 
